@@ -1,31 +1,97 @@
 
-
+import { useSearchParams } from "react-router-dom"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
+import { Link } from "react-router-dom"
+import { Table,  TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  TableRow, } from "@/components/ui/table"
+  import { SignedIn, SignedOut, useUser, SignIn, UserButton } from '@clerk/clerk-react';
 import { Users, Calendar, DollarSign, Bell, AlertCircle, Search, Filter } from 'lucide-react'
 
+const ADMIN_EMAILS = ["yadnesh2105@gmail.com", "atharvashelke2303@gmail.com"]; // List of admin emails
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { user } = useUser();
+
+  if (!user) {
+    return <Navigate to="/sign-in" replace />; // Redirect to login if not authenticated
+  }
+
+  const email = user.primaryEmailAddress?.emailAddress.toLowerCase();
+  const isAdmin = ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email);
+
+  if (!isAdmin) {
+    return <Navigate to="/access-denied" replace />; // Redirect to Access Denied
+  }
+
+  return children; // Render the protected component
+};
+
 export default function AdminDashboard() {
+
+  const [search, setSearch] = useSearchParams();
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useUser(); // Get user data from Clerk
+
+  useEffect(() => {
+    if (user && user.primaryEmailAddress?.emailAddress) {
+      const email = user.primaryEmailAddress.emailAddress.toLowerCase();
+      setIsAdmin(ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(email));
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
+
+
+
+
+
   return (
+    <>
+{showSignIn && (
+      <div
+        className="fixed flex inset-0 items-center bg-black bg-opacity-50 backdrop-blur-3xl justify-center z-50"
+      >
+        <SignIn
+          signUpForceRedirectUrl="/dashboard"
+          fallbackRedirectUrl="/dashboard"
+        />
+      </div>
+    )}
     <div className="container mx-auto p-6 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Wavyy Admin Panel</h1>
+      <div className="flex justify-between gap-6 items-center">
+        <h1 className="text-xl sm:text-4xl font-bold">Wavyy Admin Panel</h1>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon">
+          <Button>Add a User</Button>
+          <SignedIn>
+            {/* Show Post a Blog button only for admins */}
+            {isAdmin && (
+              <Link to="/post-blog">
+              </Link>
+              
+            )}
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: 'w-10 h-10',
+                },
+              }}
+            >
+            </UserButton>
+          </SignedIn>
+          <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
           </Button>
-          <Button>Add New User</Button>
         </div>
       </div>
 
@@ -199,6 +265,8 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
     </div>
+ 
+    </>
   )
 }
 
